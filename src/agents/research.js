@@ -15,10 +15,11 @@ do not invent facts that the evidence does not support.`;
  * hard numbers come from code, the interpretation comes from the model.
  *
  * Text-tool methods (extractKeywords / extractPhrases / basicStats) are unchanged.
+ * The planner's steps are passed only as structured context for interpretation.
  *
  * @returns {Promise<{keywords: object[], phrases: object[], stats: object, findings: string, usedReference: boolean, usage: object}>}
  */
-export async function gatherResearch({ topic, referenceText, language, onDelta, onRetry, signal }) {
+export async function gatherResearch({ topic, referenceText, plan, language, onDelta, onRetry, signal }) {
   const usedReference = Boolean(referenceText && referenceText.trim().length > 0);
   const source = usedReference ? referenceText : topic;
 
@@ -26,8 +27,13 @@ export async function gatherResearch({ topic, referenceText, language, onDelta, 
   const phrases = extractPhrases(source);
   const stats = basicStats(source);
 
+  const planLines = Array.isArray(plan) && plan.length
+    ? plan.map((step, i) => `${i + 1}. ${String(step).replace(/^\s*\d+[.)]\s*/, "")}`).join("\n")
+    : "(no plan steps)";
+
   const evidence = [
     `Topic: ${topic}`,
+    `Planner steps the research should support:\n${planLines}`,
     `Evidence source: ${usedReference ? "user-supplied reference text" : "the topic itself (no reference supplied)"}`,
     `Text stats: ${stats.words} words, ${stats.sentences} sentences, ~${stats.avgWordsPerSentence} words/sentence.`,
     `Top keywords: ${keywords.map((k) => `${k.word}(${k.count})`).join(", ") || "none found"}`,
@@ -36,7 +42,7 @@ export async function gatherResearch({ topic, referenceText, language, onDelta, 
 
   const { text, usage } = await complete({
     system: withLanguage(SYSTEM, language),
-    prompt: `${evidence}\n\nWrite the findings.`,
+    prompt: `${evidence}\n\nWrite the findings. Tie them to the planner steps where the evidence allows.`,
     maxTokens: 500,
     onDelta,
     onRetry,

@@ -117,9 +117,9 @@ export async function runOrchestration({
     emit("vision", "skip", { reason: "no image supplied" });
   }
 
-  // --- 3. Research (tool + model) -----------------------------------------
+  // --- 3. Research (tool + model, steered by the planner's steps) ---------
   const research = await runAgent("research", (ctx) =>
-    gatherResearch({ topic, referenceText, language: lang, ...ctx })
+    gatherResearch({ topic, referenceText, plan, language: lang, ...ctx })
   );
 
   // --- 4. Write -----------------------------------------------------------

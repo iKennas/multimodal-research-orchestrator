@@ -2,15 +2,18 @@ import { complete } from "../llmClient.js";
 import { withLanguage } from "../i18n.js";
 
 const SYSTEM = `[[REVIEWER]] You are the reviewer agent in a multi-agent research pipeline.
-Judge whether the draft is a usable answer to the topic/question. Prefer approval when the
-report substantially addresses the topic and is coherent enough to ship.
-Only request revision for clear failures: off-topic content, empty/near-empty text, or a
-major contradiction with the research findings. Minor style, length, or completeness
-nits are not enough to reject. Reply in exactly this format and nothing else:
+Default to approval. Approve whenever the draft substantially addresses the topic and is
+coherent enough to ship. Minor style, length, or completeness nits are NOT grounds for rejection.
+
+Request revision ONLY for clear failures: empty/near-empty text, completely off-topic content,
+or a major contradiction with the research findings.
+
+Reply with EXACTLY two lines and nothing else. Prefer this happy-path format:
+
 STATUS: approved
 REASON: <one short sentence>
 
-or
+Use STATUS: needs_revision only for a clear failure:
 
 STATUS: needs_revision
 REASON: <one short sentence naming the specific problem to fix>`;
@@ -21,7 +24,7 @@ REASON: <one short sentence naming the specific problem to fix>`;
 export async function reviewReport({ topic, report, language, onDelta, onRetry, signal }) {
   const { text, usage } = await complete({
     system: withLanguage(SYSTEM, language, { keepStatusEnglish: true }),
-    prompt: `Topic: ${topic}\n\nDraft report:\n${report}\n\nEvaluate it.`,
+    prompt: `Topic: ${topic}\n\nDraft report:\n${report}\n\nEvaluate it. Default STATUS: approved unless there is a clear failure.`,
     maxTokens: 300,
     onDelta,
     onRetry,
@@ -37,17 +40,19 @@ export async function reviewReport({ topic, report, language, onDelta, onRetry, 
   if (statusMatch) {
     status = /needs/i.test(statusMatch[1]) ? "needs_revision" : "approved";
   } else {
-    // The model broke format. Rather than silently approving, look for negative
-    // signals in the free text and fall back to approval only if none are found.
+    // Broken format: only reject on strong, explicit failure signals — never on the
+    // mere word "revision" (models often echo the STATUS template).
     parsed = false;
-    status = /\b(revise|revision|reject|insufficient|does not|doesn't|missing|fails?)\b/i.test(text)
-      ? "needs_revision"
-      : "approved";
+    const strongReject =
+      /\b(STATUS:\s*needs[_\s-]?revision|must\s+revise|reject(?:ed|ion)?|off[-\s]?topic|empty|near[-\s]?empty|does not address|doesn't address)\b/i.test(
+        text
+      );
+    status = strongReject ? "needs_revision" : "approved";
   }
 
   return {
     status,
-    reason: reasonMatch?.[1]?.trim() ?? (parsed ? "" : "Reviewer response could not be parsed."),
+    reason: reasonMatch?.[1]?.trim() ?? (parsed ? "" : "Reviewer response could not be parsed; defaulted to approved."),
     raw: text,
     parsed,
     usage,

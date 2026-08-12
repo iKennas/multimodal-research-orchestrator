@@ -63,6 +63,7 @@ const state = {
   jobId: null,
   source: null,
   running: false,
+  pendingApproval: false,
   imageDataUrl: null,
   startedAt: 0,
   tokens: 0,
@@ -315,6 +316,7 @@ function resetPipeline() {
   state.completed = 0;
   state.tokens = 0;
   state.retries = 0;
+  state.pendingApproval = false;
   setProgress(0);
   el.hudTokens.textContent = "0";
   el.hudRetries.textContent = "0";
@@ -425,12 +427,17 @@ function openStream(jobId) {
     catch { /* ignore a malformed frame rather than killing the stream */ }
   };
   source.onerror = () => {
-    source.close();
-    if (state.running) {
-      log(t("connectionLost"), "err");
-      toast("err", t("connectionLost"));
-      finishRun();
+    // While parked on the human gate the EventSource can flap without the job
+    // dying — don't wipe the UI / hide the modal on the first blip.
+    if (!state.running) return;
+    if (state.pendingApproval) {
+      log(t("connectionLost"), "warn");
+      return;
     }
+    source.close();
+    log(t("connectionLost"), "err");
+    toast("err", t("connectionLost"));
+    finishRun();
   };
 }
 
@@ -535,13 +542,17 @@ function handleStep({ agent, phase, data }) {
       break;
 
     case "approval-needed":
+      state.pendingApproval = true;
       setEdge(key("reviewer", "human"), "flowing");
       setNode("human", "waiting", t("awaitingYou"));
       log(t("reviewerRequested", { reason: data.reason }), "warn");
+      // Keep the draft visible behind the modal so the run never looks empty.
+      if (!state.userPinnedTab) activateTab("report");
       openModal(data.reason);
       break;
 
     case "approval-resolved":
+      state.pendingApproval = false;
       setEdge(key("reviewer", "human"), "done");
       setNode("human", "done", data.acceptAsIs ? t("accepted") : t("sentBack"));
       log(data.acceptAsIs ? t("youAccepted") : t("youSentBack"), "ok");
@@ -553,11 +564,19 @@ function handleStep({ agent, phase, data }) {
 
 function handleResult(run) {
   state.lastRunId = run.id;
+  state.pendingApproval = false;
   el.exportBtn.disabled = false;
 
-  if (!run.vision) {
-    panel("vision").replaceChildren(hint(t("noImageRun")));
-  }
+  // Always re-pin final artifacts — earlier tab focus may have left Report looking empty.
+  if (run.plan?.length) renderFinal("planner", { steps: run.plan });
+  if (run.research) renderFinal("research", run.research);
+  if (run.report) renderFinal("writer", { report: run.report });
+  if (run.review) renderFinal("reviewer", run.review);
+  if (run.vision) renderFinal("vision", { description: run.vision });
+  else panel("vision").replaceChildren(hint(t("noImageRun")));
+
+  state.userPinnedTab = false;
+  activateTab("report");
   setProgress(1);
 
   const verdict = run.review.status === "approved" ? t("approved") : t("needsRevision");
