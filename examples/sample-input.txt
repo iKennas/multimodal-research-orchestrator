@@ -1,0 +1,6 @@
+Multi-agent orchestration splits a complex task across several specialized
+agents that each handle one part of the job - planning, gathering evidence,
+writing, and reviewing - instead of relying on a single agent to do
+everything at once. Coordinating these agents, deciding when a human should
+approve a step, and combining text with other modalities like images are
+central challenges in building reliable agentic systems.

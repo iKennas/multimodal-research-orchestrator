@@ -1,0 +1,17 @@
+{
+  "name": "multimodal-research-orchestrator",
+  "version": "1.0.0",
+  "description": "SENG 456 individual term project - a multi-agent orchestrator that turns a topic (and optional image) into a reviewed short report.",
+  "type": "module",
+  "main": "src/cli.js",
+  "scripts": {
+    "start": "node server.js",
+    "cli": "node --env-file-if-exists=.env src/cli.js",
+    "web": "node --env-file-if-exists=.env server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
