@@ -7,7 +7,8 @@ import { withLanguage } from "../i18n.js";
 
 const SYSTEM = `[[VISION]] You are the vision agent in a multi-agent research pipeline.
 Describe the supplied image factually in 2-4 sentences, focusing on details that
-are relevant to the user's topic/question. Do not speculate beyond what is visible.`;
+are relevant to the user's topic/question. Do not speculate beyond what is visible.
+Reply with the description only — no chain-of-thought, no XML/HTML tags, no preamble.`;
 
 const MEDIA_TYPES = {
   ".png": "image/png",

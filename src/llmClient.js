@@ -13,6 +13,18 @@ const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 
 /**
+ * Some Groq vision/chat models leak chain-of-thought XML into the answer.
+ * Strip that so every agent stage returns user-facing content only.
+ */
+export function sanitizeModelText(text) {
+  return String(text ?? "")
+    .replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, "")
+    .replace(/<\/?think\b[^>]*>/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
  * One text generation call.
  *
  * @param {object} options
@@ -83,7 +95,10 @@ async function generate({ system, parts, model, maxTokens, onDelta, onRetry, sig
       ? () => streamGroqOnce({ system, parts, model, maxTokens, onDelta, signal })
       : () => streamGeminiOnce({ system, parts, model, maxTokens, onDelta, signal });
 
-  return withRetry(once, { retries: config.retries, signal, onRetry });
+  const result = await withRetry(once, { retries: config.retries, signal, onRetry });
+  const text = sanitizeModelText(result.text);
+  if (!text) throw new EmptyResponseError(result.finishReason);
+  return { ...result, text };
 }
 
 /**
