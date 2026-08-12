@@ -250,97 +250,147 @@
       </div>
     </section>
 
-    <!-- ─────────────── sidebar ─────────────── -->
+    <!-- ─────────────── sidebar (Cursor-style workspace) ─────────────── -->
     <aside class="sidebar">
 
-      <form class="panel reveal" id="runForm" style="--d:120ms">
-        <div class="panel-head">
-          <h2 class="panel-title" data-i18n="newRun">Yeni çalışma</h2>
-          <kbd class="kbd-hint">⌘↵</kbd>
-        </div>
+      <div class="workspace-modes reveal" style="--d:100ms" role="tablist" aria-label="Workspace mode">
+        <button type="button" class="workspace-mode active" data-workspace="research" role="tab" aria-selected="true" id="modeResearchBtn">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <span data-i18n="modeResearch">Araştırma</span>
+        </button>
+        <button type="button" class="workspace-mode" data-workspace="chat" role="tab" aria-selected="false" id="modeChatBtn">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4.5 6.5h15v9.2a1.8 1.8 0 0 1-1.8 1.8H9.2L5 20.5v-3a1.8 1.8 0 0 1-.5-1.25V6.5z"/>
+          </svg>
+          <span data-i18n="modeChat">Sohbet</span>
+        </button>
+        <span class="workspace-mode-pill" id="workspaceModePill" aria-hidden="true"></span>
+      </div>
 
-        <label class="field-label" for="languageSelect" data-i18n="languageLabel">Dil</label>
-        <div class="lang-select-wrap">
-          <select id="languageSelect" class="field lang-select" data-i18n-aria="languageLabel" aria-label="Dil">
-            <option value="tr">Türkçe</option>
-            <option value="en">English</option>
-            <option value="ar">العربية</option>
-          </select>
-        </div>
+      <div class="sidebar-stack">
 
-        <label class="field-label" for="topic" data-i18n="topicLabel">Konu / soru</label>
-        <div class="field-wrap">
-          <textarea id="topic" class="field" rows="3" maxlength="2000"
-            data-i18n-placeholder="topicPlaceholder"
-            placeholder="örn. Çok ajanlı orkestrasyon çok modlu görevlere nasıl yardımcı olur?" required></textarea>
-          <span class="char-count" id="topicCount">0</span>
-        </div>
-
-        <label class="field-label" for="reference"><span data-i18n="referenceLabel">Referans metin</span> <span class="opt" data-i18n="optional">isteğe bağlı</span></label>
-        <textarea id="reference" class="field" rows="3" maxlength="20000"
-          data-i18n-placeholder="referencePlaceholder"
-          placeholder="Araştırma ajanının anahtar kelime aracının analiz edeceği metni yapıştırın…"></textarea>
-
-        <label class="field-label"><span data-i18n="imageLabel">Görüntü</span> <span class="opt" data-i18n="imageOpt">isteğe bağlı · görü ajanını etkinleştirir</span></label>
-        <div class="dropzone" id="dropzone" tabindex="0" role="button" data-i18n-aria="dropAria" aria-label="Görüntü ekle">
-          <input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
-          <div class="dz-empty" id="dropzoneEmpty">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/>
-            </svg>
-            <span class="dz-main" data-i18n="dropMain">Görüntüyü bırakın veya seçmek için tıklayın</span>
-            <span class="dz-hint" data-i18n="dropHint">PNG · JPEG · WEBP · GIF · en fazla 8 MB</span>
+        <!-- Research form -->
+        <form class="panel composer-panel reveal" id="runForm" style="--d:120ms" data-panel-for="research">
+          <div class="panel-head">
+            <h2 class="panel-title" data-i18n="newRun">Yeni çalışma</h2>
+            <kbd class="kbd-hint">⌘↵</kbd>
           </div>
-          <div class="dz-preview hidden" id="dropzonePreviewWrap">
-            <img id="dropzonePreview" alt="Attached image preview" />
-            <div class="dz-meta">
-              <span class="dz-name" id="dropzoneName">image</span>
-              <span class="dz-size" id="dropzoneSize"></span>
+
+          <label class="field-label" for="languageSelect" data-i18n="languageLabel">Dil</label>
+          <div class="lang-select-wrap">
+            <select id="languageSelect" class="field lang-select" data-i18n-aria="languageLabel" aria-label="Dil">
+              <option value="tr">Türkçe</option>
+              <option value="en">English</option>
+              <option value="ar">العربية</option>
+            </select>
+          </div>
+
+          <div class="research-fields" id="researchFields">
+            <label class="field-label" for="topic" data-i18n="topicLabel">Konu / soru</label>
+            <div class="field-wrap">
+              <textarea id="topic" class="field" rows="3" maxlength="2000"
+                data-i18n-placeholder="topicPlaceholder"
+                placeholder="örn. Çok ajanlı orkestrasyon çok modlu görevlere nasıl yardımcı olur?" required></textarea>
+              <span class="char-count" id="topicCount">0</span>
             </div>
-            <button type="button" class="ghost-btn" id="removeImage" data-i18n="remove">kaldır</button>
+
+            <label class="field-label" for="reference"><span data-i18n="referenceLabel">Referans metin</span> <span class="opt" data-i18n="optional">isteğe bağlı</span></label>
+            <textarea id="reference" class="field" rows="3" maxlength="20000"
+              data-i18n-placeholder="referencePlaceholder"
+              placeholder="Araştırma ajanının anahtar kelime aracının analiz edeceği metni yapıştırın…"></textarea>
+
+            <label class="field-label"><span data-i18n="imageLabel">Görüntü</span> <span class="opt" data-i18n="imageOpt">isteğe bağlı · görü ajanını etkinleştirir</span></label>
+            <div class="dropzone" id="dropzone" tabindex="0" role="button" data-i18n-aria="dropAria" aria-label="Görüntü ekle">
+              <input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+              <div class="dz-empty" id="dropzoneEmpty">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/>
+                </svg>
+                <span class="dz-main" data-i18n="dropMain">Görüntüyü bırakın veya seçmek için tıklayın</span>
+                <span class="dz-hint" data-i18n="dropHint">PNG · JPEG · WEBP · GIF · en fazla 8 MB</span>
+              </div>
+              <div class="dz-preview hidden" id="dropzonePreviewWrap">
+                <img id="dropzonePreview" alt="Attached image preview" />
+                <div class="dz-meta">
+                  <span class="dz-name" id="dropzoneName">image</span>
+                  <span class="dz-size" id="dropzoneSize"></span>
+                </div>
+                <button type="button" class="ghost-btn" id="removeImage" data-i18n="remove">kaldır</button>
+              </div>
+            </div>
+
+            <div class="run-row">
+              <button type="submit" class="run-btn" id="runBtn">
+                <span class="run-btn-shine"></span>
+                <svg class="run-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+                <span id="runBtnLabel" data-i18n="runPipeline">Boru hattını çalıştır</span>
+              </button>
+              <button type="button" class="cancel-btn hidden" id="cancelBtn" data-i18n-title="cancelTitle" title="Çalışmayı iptal et (Esc)">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              </button>
+            </div>
           </div>
-        </div>
+        </form>
 
-        <div class="run-row">
-          <button type="submit" class="run-btn" id="runBtn">
-            <span class="run-btn-shine"></span>
-            <svg class="run-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
-            <span id="runBtnLabel" data-i18n="runPipeline">Boru hattını çalıştır</span>
-          </button>
-          <button type="button" class="cancel-btn hidden" id="cancelBtn" data-i18n-title="cancelTitle" title="Çalışmayı iptal et (Esc)">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
-          </button>
-        </div>
-      </form>
+        <!-- Chat thread -->
+        <section class="panel chat-panel hidden" id="chatPanel" data-panel-for="chat" aria-label="Chat">
+          <div class="panel-head">
+            <h2 class="panel-title" data-i18n="chatTitle">Sohbet</h2>
+            <button type="button" class="ghost-btn" id="clearChat" data-i18n="clearChat">temizle</button>
+          </div>
+          <div class="chat-thread" id="chatThread">
+            <div class="chat-empty" id="chatEmpty">
+              <div class="chat-empty-icon" aria-hidden="true">✦</div>
+              <p data-i18n="chatEmpty">Bir mesaj yazın — soldaki ajan boru hattı her turda planlar, araştırır ve yanıtı yazar.</p>
+            </div>
+          </div>
+          <div class="chat-composer">
+            <textarea id="chatInput" class="field chat-input" rows="2" maxlength="2000"
+              data-i18n-placeholder="chatPlaceholder"
+              placeholder="Takip sorusu yazın…"></textarea>
+            <div class="chat-composer-row">
+              <button type="button" class="ghost-btn" id="chatAttachBtn" data-i18n="chatAttach">görüntü</button>
+              <button type="button" class="run-btn chat-send" id="chatSendBtn">
+                <span class="run-btn-shine"></span>
+                <svg class="run-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+                <span data-i18n="chatSend">Gönder</span>
+              </button>
+            </div>
+          </div>
+        </section>
 
+        <!-- Formatted output (under inputs — research tabs) -->
+        <section class="panel output-panel reveal" style="--d:160ms" id="outputPanel" aria-label="Output" data-panel-for="research">
+          <div class="panel-head">
+            <h2 class="panel-title" data-i18n="output">Çıktı</h2>
+            <div class="panel-head-actions">
+              <button class="ghost-btn" id="copyOutput" data-i18n="copy" data-i18n-title="copyOutputTitle" title="Aktif paneli kopyala">kopyala</button>
+              <button class="ghost-btn" id="exportBtn" disabled data-i18n="export" data-i18n-title="exportTitle" title="Çalışmayı Markdown olarak indir">dışa aktar</button>
+            </div>
+          </div>
+
+          <div class="tabs" id="tabs" role="tablist">
+            <button class="tab active" data-tab="report" role="tab" data-i18n="tabReport">Rapor</button>
+            <button class="tab" data-tab="plan" role="tab" data-i18n="tabPlan">Plan</button>
+            <button class="tab" data-tab="research" role="tab" data-i18n="tabResearch">Araştırma</button>
+            <button class="tab" data-tab="vision" role="tab" data-i18n="tabVision">Görü</button>
+            <button class="tab" data-tab="review" role="tab" data-i18n="tabReview">İnceleme</button>
+            <span class="tab-underline" id="tabUnderline"></span>
+          </div>
+
+          <div class="tab-panels" id="tabPanels">
+            <div class="tab-panel active" data-panel="report"><p class="empty-hint" data-i18n="emptyReport">Henüz rapor yok — üretmek için boru hattını çalıştırın.</p></div>
+            <div class="tab-panel" data-panel="plan"><p class="empty-hint" data-i18n="emptyPlan">Henüz plan yok.</p></div>
+            <div class="tab-panel" data-panel="research"><p class="empty-hint" data-i18n="emptyResearch">Henüz bulgu yok.</p></div>
+            <div class="tab-panel" data-panel="vision"><p class="empty-hint" data-i18n="emptyVision">Görü ajanını etkinleştirmek için bir görüntü ekleyin.</p></div>
+            <div class="tab-panel" data-panel="review"><p class="empty-hint" data-i18n="emptyReview">Henüz inceleme yok.</p></div>
+          </div>
+        </section>
+
+      </div>
     </aside>
-
-    <section class="panel output-panel reveal" style="--d:160ms" aria-label="Output">
-      <div class="panel-head">
-        <h2 class="panel-title" data-i18n="output">Çıktı</h2>
-        <div class="panel-head-actions">
-          <button class="ghost-btn" id="copyOutput" data-i18n="copy" data-i18n-title="copyOutputTitle" title="Aktif paneli kopyala">kopyala</button>
-          <button class="ghost-btn" id="exportBtn" disabled data-i18n="export" data-i18n-title="exportTitle" title="Çalışmayı Markdown olarak indir">dışa aktar</button>
-        </div>
-      </div>
-
-      <div class="tabs" id="tabs" role="tablist">
-        <button class="tab active" data-tab="report" role="tab" data-i18n="tabReport">Rapor</button>
-        <button class="tab" data-tab="plan" role="tab" data-i18n="tabPlan">Plan</button>
-        <button class="tab" data-tab="research" role="tab" data-i18n="tabResearch">Araştırma</button>
-        <button class="tab" data-tab="vision" role="tab" data-i18n="tabVision">Görü</button>
-        <button class="tab" data-tab="review" role="tab" data-i18n="tabReview">İnceleme</button>
-        <span class="tab-underline" id="tabUnderline"></span>
-      </div>
-
-      <div class="tab-panels" id="tabPanels">
-        <div class="tab-panel active" data-panel="report"><p class="empty-hint" data-i18n="emptyReport">Henüz rapor yok — üretmek için boru hattını çalıştırın.</p></div>
-        <div class="tab-panel" data-panel="plan"><p class="empty-hint" data-i18n="emptyPlan">Henüz plan yok.</p></div>
-        <div class="tab-panel" data-panel="research"><p class="empty-hint" data-i18n="emptyResearch">Henüz bulgu yok.</p></div>
-        <div class="tab-panel" data-panel="vision"><p class="empty-hint" data-i18n="emptyVision">Görü ajanını etkinleştirmek için bir görüntü ekleyin.</p></div>
-        <div class="tab-panel" data-panel="review"><p class="empty-hint" data-i18n="emptyReview">Henüz inceleme yok.</p></div>
-      </div>
-    </section>
   </main>
 </div>
 

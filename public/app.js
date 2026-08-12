@@ -54,6 +54,10 @@ const el = {
   clearLog: $("clearLog"), copyLog: $("copyLog"),
   copyOutput: $("copyOutput"), exportBtn: $("exportBtn"),
   toasts: $("toasts"),
+  workspaceModes: document.querySelector(".workspace-modes"),
+  chatPanel: $("chatPanel"), chatThread: $("chatThread"), chatEmpty: $("chatEmpty"),
+  chatInput: $("chatInput"), chatSendBtn: $("chatSendBtn"), chatAttachBtn: $("chatAttachBtn"),
+  clearChat: $("clearChat"), outputPanel: $("outputPanel"),
 };
 
 const nodeEl = {};
@@ -64,6 +68,8 @@ const state = {
   source: null,
   running: false,
   pendingApproval: false,
+  workspace: "research", // research | chat
+  chatTurns: [],
   imageDataUrl: null,
   startedAt: 0,
   tokens: 0,
@@ -86,6 +92,7 @@ function init() {
   if (el.languageSelect) el.languageSelect.value = I18N.get();
 
   resetPipeline();
+  setWorkspace(localStorage.getItem("mro-workspace") === "chat" ? "chat" : "research", { silent: true });
 
   // The nodes animate in (translate + scale), so their geometry is not final on
   // the first frame. A ResizeObserver fires once on attach and again whenever
@@ -374,15 +381,88 @@ function log(message, cls = "info") {
   while (el.consoleBody.childElementCount > 400) el.consoleBody.firstElementChild.remove();
 }
 
-// ───────────────────────── run lifecycle ─────────────────────────
+// ───────────────────────── workspace modes ─────────────────────────
 
-el.runForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
+function setWorkspace(mode, { silent = false } = {}) {
+  const next = mode === "chat" ? "chat" : "research";
+  state.workspace = next;
+  document.body.dataset.workspace = next;
+  localStorage.setItem("mro-workspace", next);
+
+  el.workspaceModes?.setAttribute("data-active", next);
+  el.workspaceModes?.querySelectorAll(".workspace-mode").forEach((btn) => {
+    const active = btn.dataset.workspace === next;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+
+  if (el.topic) el.topic.required = next === "research";
+
+  const title = el.runForm?.querySelector(".panel-title");
+  if (title) title.textContent = next === "chat" ? t("chatTitle") : t("newRun");
+
+  if (!silent) {
+    log(next === "chat" ? t("switchedToChat") : t("switchedToResearch"), "info");
+    requestAnimationFrame(() => {
+      layoutEdges();
+      moveUnderline();
+    });
+  }
+}
+
+el.workspaceModes?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".workspace-mode");
+  if (!btn || state.running) return;
+  setWorkspace(btn.dataset.workspace);
+});
+
+function appendChatMessage(role, content, { html = false, meta = "" } = {}) {
+  if (el.chatEmpty) el.chatEmpty.classList.add("hidden");
+
+  const wrap = document.createElement("div");
+  wrap.className = `chat-msg ${role}`;
+
+  if (meta) {
+    const m = document.createElement("div");
+    m.className = "chat-meta";
+    m.textContent = meta;
+    wrap.append(m);
+  }
+
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble";
+  if (html) bubble.innerHTML = content;
+  else bubble.textContent = content;
+  wrap.append(bubble);
+
+  el.chatThread.appendChild(wrap);
+  el.chatThread.scrollTop = el.chatThread.scrollHeight;
+  return wrap;
+}
+
+function appendChatTyping() {
+  const wrap = document.createElement("div");
+  wrap.className = "chat-msg assistant";
+  wrap.dataset.typing = "1";
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble";
+  bubble.innerHTML = `<span class="chat-typing" aria-label="…"><i></i><i></i><i></i></span>`;
+  wrap.append(bubble);
+  el.chatThread.appendChild(wrap);
+  el.chatThread.scrollTop = el.chatThread.scrollHeight;
+  return wrap;
+}
+
+function buildChatReference() {
+  if (!state.chatTurns.length) return "";
+  return state.chatTurns
+    .slice(-4)
+    .map((turn) => `${turn.role === "user" ? "User" : "Assistant"}: ${turn.text}`)
+    .join("\n\n");
+}
+
+async function startPipeline({ topic, referenceText, fromChat = false }) {
   if (state.running) return;
-
-  const topic = el.topic.value.trim();
-  if (!topic) { toast("warn", t("enterTopic")); el.topic.focus(); return; }
-
   const language = I18N.normalize(el.languageSelect?.value || I18N.get());
 
   setRunning(true);
@@ -390,11 +470,12 @@ el.runForm.addEventListener("submit", async (e) => {
   el.consoleBody.replaceChildren();
   state.userPinnedTab = false;
   state.expected = CHAIN.length - (state.imageDataUrl ? 0 : 1);
+  state.fromChat = fromChat;
   startClock();
 
   log(t("runStarted", { topic: truncate(topic, 90) }), "info");
   if (state.imageDataUrl) log(t("imageAttached"), "info");
-  if (el.reference.value.trim()) log(t("referenceAttached"), "info");
+  if (referenceText?.trim()) log(t("referenceAttached"), "info");
 
   try {
     const { jobId } = await fetchJSON("/api/run", {
@@ -402,7 +483,7 @@ el.runForm.addEventListener("submit", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         topic,
-        referenceText: el.reference.value,
+        referenceText: referenceText || "",
         imageDataUrl: state.imageDataUrl,
         language,
       }),
@@ -414,8 +495,63 @@ el.runForm.addEventListener("submit", async (e) => {
     toast("err", t("couldNotStart"), err.message);
     setRunning(false);
     stopClock();
+    if (fromChat) {
+      el.chatThread.querySelector('[data-typing="1"]')?.remove();
+      appendChatMessage("assistant", t("couldNotStart") + ": " + err.message, { meta: t("error") });
+    }
+  }
+}
+
+// ───────────────────────── run lifecycle ─────────────────────────
+
+el.runForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (state.workspace !== "research") return;
+  if (state.running) return;
+
+  const topic = el.topic.value.trim();
+  if (!topic) { toast("warn", t("enterTopic")); el.topic.focus(); return; }
+
+  await startPipeline({
+    topic,
+    referenceText: el.reference.value,
+    fromChat: false,
+  });
+});
+
+el.chatSendBtn?.addEventListener("click", () => sendChat());
+el.chatInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
   }
 });
+el.chatAttachBtn?.addEventListener("click", () => el.imageInput?.click());
+el.clearChat?.addEventListener("click", () => {
+  state.chatTurns = [];
+  el.chatThread.replaceChildren();
+  if (el.chatEmpty) {
+    el.chatThread.appendChild(el.chatEmpty);
+    el.chatEmpty.classList.remove("hidden");
+  }
+});
+
+async function sendChat() {
+  if (state.running) return;
+  const topic = el.chatInput.value.trim();
+  if (!topic) { toast("warn", t("enterTopic")); el.chatInput.focus(); return; }
+
+  appendChatMessage("user", topic);
+  state.chatTurns.push({ role: "user", text: topic });
+  el.chatInput.value = "";
+  appendChatTyping();
+
+  await startPipeline({
+    topic,
+    referenceText: buildChatReference(),
+    fromChat: true,
+  });
+}
 
 function openStream(jobId) {
   state.source?.close();
@@ -579,6 +715,17 @@ function handleResult(run) {
   activateTab("report");
   setProgress(1);
 
+  if (state.fromChat || state.workspace === "chat") {
+    el.chatThread.querySelector('[data-typing="1"]')?.remove();
+    const verdict = run.review?.status === "approved" ? t("approved") : t("needsRevision");
+    const html = formatProseHtml(run.report || "");
+    appendChatMessage("assistant", html, {
+      html: true,
+      meta: `${verdict} · ${fmtMs(run.metrics.totalDurationMs)} · ${run.metrics.usage.totalTokens} tok`,
+    });
+    state.chatTurns.push({ role: "assistant", text: run.report || "" });
+  }
+
   const verdict = run.review.status === "approved" ? t("approved") : t("needsRevision");
   log(
     t("pipelineComplete", {
@@ -620,6 +767,10 @@ function finishRun() {
   state.source = null;
   el.modal.classList.add("hidden");
   document.querySelectorAll(".report-text.streaming").forEach((n) => n.classList.remove("streaming"));
+  // If a chat turn was cancelled / errored mid-flight, drop the typing bubble.
+  if (!state.pendingApproval) {
+    el.chatThread?.querySelector('[data-typing="1"]')?.remove();
+  }
 }
 
 function setRunning(running) {
@@ -628,6 +779,11 @@ function setRunning(running) {
   el.runBtn.classList.toggle("running", running);
   el.runBtnLabel.textContent = running ? t("running") : t("runPipeline");
   el.cancelBtn.classList.toggle("hidden", !running);
+  if (el.chatSendBtn) el.chatSendBtn.disabled = running;
+  if (el.chatInput) el.chatInput.disabled = running;
+  el.workspaceModes?.querySelectorAll(".workspace-mode").forEach((btn) => {
+    btn.disabled = running;
+  });
 }
 
 el.cancelBtn.addEventListener("click", async () => {
@@ -1160,7 +1316,8 @@ document.addEventListener("keydown", (e) => {
   // Cmd/Ctrl+Enter runs from anywhere, including inside the textareas.
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
     e.preventDefault();
-    el.runForm.requestSubmit();
+    if (state.workspace === "chat") sendChat();
+    else el.runForm.requestSubmit();
     return;
   }
 
@@ -1175,7 +1332,10 @@ document.addEventListener("keydown", (e) => {
   if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
 
   if (e.key.toLowerCase() === "h") { e.preventDefault(); el.drawer.classList.contains("hidden") ? openDrawer() : closeDrawer(); }
-  if (e.key === "/") { e.preventDefault(); el.topic.focus(); }
+  if (e.key === "/") {
+    e.preventDefault();
+    (state.workspace === "chat" ? el.chatInput : el.topic)?.focus();
+  }
 });
 
 // ───────────────────────── misc ─────────────────────────
