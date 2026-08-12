@@ -526,7 +526,11 @@ button { font-family: inherit; }
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 8px;
+  scrollbar-gutter: stable;
 }
 
 .workspace-modes {
@@ -705,11 +709,33 @@ html[dir="rtl"] .lang-select {
 /* ───────────────────────── output panel ───────────────────────── */
 
 .output-panel {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: 220px;
+  min-height: 260px;
   overflow: hidden;
+}
+
+/* After a research run finishes, grow the report area for reading */
+.output-panel.has-results {
+  flex: 1 1 auto;
+  min-height: min(58vh, 620px);
+  height: min(62vh, 680px);
+}
+
+.output-panel.has-results .tab-panels {
+  flex: 1;
+  min-height: 0;
+}
+
+body[data-workspace="research"] .composer-panel.compact .research-fields .field[rows] {
+  max-height: 72px;
+}
+body[data-workspace="research"] .composer-panel.compact .dropzone {
+  padding: 10px;
+}
+body[data-workspace="research"] .composer-panel.compact .dz-hint {
+  display: none;
 }
 
 body[data-workspace="chat"] .research-fields,
@@ -1179,6 +1205,10 @@ html[dir="rtl"] .run-icon { transform: scaleX(-1); }
   .output-panel,
   .chat-panel {
     min-height: min(46vh, 420px);
+  }
+  .output-panel.has-results {
+    min-height: min(62vh, 560px);
+    height: auto;
   }
 
   .canvas-scroll {

@@ -714,6 +714,7 @@ function handleResult(run) {
   state.userPinnedTab = false;
   activateTab("report");
   setProgress(1);
+  expandResearchOutput();
 
   if (state.fromChat || state.workspace === "chat") {
     el.chatThread.querySelector('[data-typing="1"]')?.remove();
@@ -744,6 +745,22 @@ function handleResult(run) {
   );
 
   loadHistory();
+}
+
+/** Grow the report panel and scroll it into view so Research results are readable. */
+function expandResearchOutput() {
+  if (state.workspace !== "research") return;
+  el.outputPanel?.classList.add("has-results");
+  el.runForm?.classList.add("compact");
+  requestAnimationFrame(() => {
+    el.outputPanel?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const stack = el.outputPanel?.closest(".sidebar-stack");
+    if (stack && el.outputPanel) {
+      const top = el.outputPanel.offsetTop - 8;
+      stack.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
+    moveUnderline();
+  });
 }
 
 function handleError(error) {
@@ -1216,7 +1233,9 @@ async function openHistoryRun(id) {
     }
     updateCharCount();
     state.userPinnedTab = true;
+    if (state.workspace !== "research") setWorkspace("research", { silent: true });
     activateTab("report");
+    expandResearchOutput();
     closeDrawer();
     toast("info", t("loadedHistory"), run.topic);
   } catch {
