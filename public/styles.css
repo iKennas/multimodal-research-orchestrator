@@ -719,6 +719,9 @@ body[data-workspace="chat"] .output-panel {
 body[data-workspace="research"] .chat-panel {
   display: none !important;
 }
+body[data-workspace="chat"] .chat-panel {
+  display: flex !important;
+}
 body[data-workspace="chat"] .composer-panel {
   flex-shrink: 0;
 }
@@ -1118,7 +1121,7 @@ html[dir="rtl"] .run-icon { transform: scaleX(-1); }
 
 /* ───────────────────────── responsive ───────────────────────── */
 
-/* Tablet: single column, form first, HUD becomes a full-width strip */
+/* Tablet+: keep Cursor split (big n8n canvas | workspace). Stack only on phones. */
 @media (max-width: 940px) {
   body { overflow: auto; }
   .app { height: auto; min-height: 100vh; min-height: 100dvh; }
@@ -1159,6 +1162,10 @@ html[dir="rtl"] .run-icon { transform: scaleX(-1); }
     white-space: nowrap;
   }
 
+  :root { --sidebar-w: min(380px, 40vw); }
+}
+
+@media (max-width: 760px) {
   .layout {
     display: flex;
     flex-direction: column;
