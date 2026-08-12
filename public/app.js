@@ -684,7 +684,7 @@ function renderFinal(agent, result) {
     }));
 
   } else if (agent === "vision") {
-    target.replaceChildren(text(result.description));
+    target.replaceChildren(prose(result.description));
 
   } else if (agent === "research") {
     const frag = document.createDocumentFragment();
@@ -705,11 +705,11 @@ function renderFinal(agent, result) {
     if (result.phrases?.length) {
       frag.append(label(t("phrases")), chipRow(result.phrases.map((p) => [p.phrase, p.count]), "chip phrase"));
     }
-    frag.append(label(t("findings")), text(result.findings));
+    frag.append(label(t("findings")), prose(result.findings));
     target.replaceChildren(frag);
 
   } else if (agent === "writer") {
-    target.replaceChildren(text(result.report));
+    target.replaceChildren(prose(result.report));
 
   } else if (agent === "reviewer") {
     const frag = document.createDocumentFragment();
@@ -719,7 +719,7 @@ function renderFinal(agent, result) {
     badge.textContent = result.status === "approved" ? t("approvedBadge") : t("needsRevisionBadge");
     frag.append(badge);
 
-    if (result.reason) frag.append(text(result.reason));
+    if (result.reason) frag.append(prose(result.reason));
     if (!result.parsed) {
       frag.append(label(t("reviewNote")), text(t("reviewParseNote")));
     }
@@ -734,6 +734,112 @@ function text(value) {
   div.className = "report-text";
   div.textContent = value ?? "";
   return div;
+}
+
+/** Render agent prose as clean HTML — no visible **, ---, or # leftovers. */
+function prose(value) {
+  const div = document.createElement("div");
+  div.className = "report-prose";
+  div.innerHTML = formatProseHtml(value ?? "");
+  return div;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatInline(escaped) {
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>")
+    .replace(/(^|[^_])_([^_\n]+)_(?!_)/g, "$1<em>$2</em>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
+/**
+ * Light formatter: turns model Markdown / noisy markers into readable HTML.
+ * Safe: escapes first, then applies a small set of inline/block transforms.
+ */
+function formatProseHtml(raw) {
+  const cleaned = String(raw)
+    .replace(/\r\n/g, "\n")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^\s*[-_*]{3,}\s*$/gm, "")
+    .replace(/^\s*\/{2,}.*$/gm, "")
+    .replace(/^\s*```+\w*\s*$/gm, "")
+    .trim();
+
+  if (!cleaned) return "";
+
+  const lines = cleaned.split("\n");
+  const blocks = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trimEnd();
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      i += 1;
+      continue;
+    }
+
+    // Bullet list
+    if (/^[-*•]\s+/.test(trimmed)) {
+      const items = [];
+      while (i < lines.length && /^[-*•]\s+/.test(lines[i].trim())) {
+        items.push(formatInline(escapeHtml(lines[i].trim().replace(/^[-*•]\s+/, ""))));
+        i += 1;
+      }
+      blocks.push(`<ul>${items.map((it) => `<li>${it}</li>`).join("")}</ul>`);
+      continue;
+    }
+
+    // Numbered list
+    if (/^\d+[.)]\s+/.test(trimmed)) {
+      const items = [];
+      while (i < lines.length && /^\d+[.)]\s+/.test(lines[i].trim())) {
+        items.push(formatInline(escapeHtml(lines[i].trim().replace(/^\d+[.)]\s+/, ""))));
+        i += 1;
+      }
+      blocks.push(`<ol>${items.map((it) => `<li>${it}</li>`).join("")}</ol>`);
+      continue;
+    }
+
+    // Section title: "Introduction:" or "**Report Title**" alone on a line
+    const titlePlain = trimmed
+      .replace(/^\*\*(.+)\*\*$/, "$1")
+      .replace(/^__(.+)__$/, "$1");
+    if (
+      (titlePlain.length <= 80 && /[:：]\s*$/.test(titlePlain)) ||
+      (titlePlain.length <= 70 && titlePlain === trimmed.replace(/^\*\*(.+)\*\*$/, "$1") && /^\*\*.+\*\*$/.test(trimmed))
+    ) {
+      const title = formatInline(escapeHtml(titlePlain.replace(/[:：]\s*$/, "")));
+      blocks.push(`<h3>${title}</h3>`);
+      i += 1;
+      continue;
+    }
+
+    // Paragraph (merge wrapped lines until blank / list / title)
+    const para = [trimmed];
+    i += 1;
+    while (i < lines.length) {
+      const next = lines[i].trim();
+      if (!next) break;
+      if (/^[-*•]\s+/.test(next) || /^\d+[.)]\s+/.test(next)) break;
+      if (/^\*\*.+\*\*$/.test(next) || (/[:：]\s*$/.test(next) && next.length <= 80)) break;
+      para.push(next);
+      i += 1;
+    }
+    blocks.push(`<p>${formatInline(escapeHtml(para.join(" ")))}</p>`);
+  }
+
+  return blocks.join("");
 }
 function label(value) {
   const div = document.createElement("div");

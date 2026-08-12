@@ -313,33 +313,34 @@
         </div>
       </form>
 
-      <div class="panel output-panel reveal" style="--d:160ms">
-        <div class="panel-head">
-          <h2 class="panel-title" data-i18n="output">Çıktı</h2>
-          <div class="panel-head-actions">
-            <button class="ghost-btn" id="copyOutput" data-i18n="copy" data-i18n-title="copyOutputTitle" title="Aktif paneli kopyala">kopyala</button>
-            <button class="ghost-btn" id="exportBtn" disabled data-i18n="export" data-i18n-title="exportTitle" title="Çalışmayı Markdown olarak indir">dışa aktar</button>
-          </div>
-        </div>
+    </aside>
 
-        <div class="tabs" id="tabs" role="tablist">
-          <button class="tab active" data-tab="report" role="tab" data-i18n="tabReport">Rapor</button>
-          <button class="tab" data-tab="plan" role="tab" data-i18n="tabPlan">Plan</button>
-          <button class="tab" data-tab="research" role="tab" data-i18n="tabResearch">Araştırma</button>
-          <button class="tab" data-tab="vision" role="tab" data-i18n="tabVision">Görü</button>
-          <button class="tab" data-tab="review" role="tab" data-i18n="tabReview">İnceleme</button>
-          <span class="tab-underline" id="tabUnderline"></span>
-        </div>
-
-        <div class="tab-panels" id="tabPanels">
-          <div class="tab-panel active" data-panel="report"><p class="empty-hint" data-i18n="emptyReport">Henüz rapor yok — üretmek için boru hattını çalıştırın.</p></div>
-          <div class="tab-panel" data-panel="plan"><p class="empty-hint" data-i18n="emptyPlan">Henüz plan yok.</p></div>
-          <div class="tab-panel" data-panel="research"><p class="empty-hint" data-i18n="emptyResearch">Henüz bulgu yok.</p></div>
-          <div class="tab-panel" data-panel="vision"><p class="empty-hint" data-i18n="emptyVision">Görü ajanını etkinleştirmek için bir görüntü ekleyin.</p></div>
-          <div class="tab-panel" data-panel="review"><p class="empty-hint" data-i18n="emptyReview">Henüz inceleme yok.</p></div>
+    <section class="panel output-panel reveal" style="--d:160ms" aria-label="Output">
+      <div class="panel-head">
+        <h2 class="panel-title" data-i18n="output">Çıktı</h2>
+        <div class="panel-head-actions">
+          <button class="ghost-btn" id="copyOutput" data-i18n="copy" data-i18n-title="copyOutputTitle" title="Aktif paneli kopyala">kopyala</button>
+          <button class="ghost-btn" id="exportBtn" disabled data-i18n="export" data-i18n-title="exportTitle" title="Çalışmayı Markdown olarak indir">dışa aktar</button>
         </div>
       </div>
-    </aside>
+
+      <div class="tabs" id="tabs" role="tablist">
+        <button class="tab active" data-tab="report" role="tab" data-i18n="tabReport">Rapor</button>
+        <button class="tab" data-tab="plan" role="tab" data-i18n="tabPlan">Plan</button>
+        <button class="tab" data-tab="research" role="tab" data-i18n="tabResearch">Araştırma</button>
+        <button class="tab" data-tab="vision" role="tab" data-i18n="tabVision">Görü</button>
+        <button class="tab" data-tab="review" role="tab" data-i18n="tabReview">İnceleme</button>
+        <span class="tab-underline" id="tabUnderline"></span>
+      </div>
+
+      <div class="tab-panels" id="tabPanels">
+        <div class="tab-panel active" data-panel="report"><p class="empty-hint" data-i18n="emptyReport">Henüz rapor yok — üretmek için boru hattını çalıştırın.</p></div>
+        <div class="tab-panel" data-panel="plan"><p class="empty-hint" data-i18n="emptyPlan">Henüz plan yok.</p></div>
+        <div class="tab-panel" data-panel="research"><p class="empty-hint" data-i18n="emptyResearch">Henüz bulgu yok.</p></div>
+        <div class="tab-panel" data-panel="vision"><p class="empty-hint" data-i18n="emptyVision">Görü ajanını etkinleştirmek için bir görüntü ekleyin.</p></div>
+        <div class="tab-panel" data-panel="review"><p class="empty-hint" data-i18n="emptyReview">Henüz inceleme yok.</p></div>
+      </div>
+    </section>
   </main>
 </div>
 

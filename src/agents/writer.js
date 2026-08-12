@@ -5,8 +5,14 @@ const SYSTEM = `[[WRITER]] You are the writer agent in a multi-agent research pi
 Combine the planner's numbered steps, research findings, and (if present) the image
 description into a short, well-structured report (max ~250 words) that directly answers
 the user's topic/question. Follow the plan's structure: cover each planner step briefly
-using the research findings (and vision notes when available). Use plain prose with short
-paragraphs. If revision feedback is supplied, address it explicitly in the new draft.`;
+using the research findings (and vision notes when available).
+
+Formatting rules (important):
+- Write plain prose only. Do NOT use Markdown.
+- No **, __, #, ---, //, backticks, or bullet markers like "- " or "* ".
+- Use short paragraphs separated by a blank line.
+- If you need a section title, put it alone on a line ending with a colon (example: Introduction:).
+- If revision feedback is supplied, address it explicitly in the new draft.`;
 
 /**
  * @returns {Promise<{report: string, usage: object}>}
